@@ -1,8 +1,6 @@
 // ============================================================
-
 // Time Dilator by Alexander Sousa June 2026
-
-
+//
 //  Binary LED Clock — RTC + WS2811 LED String
 //  Hardware: Elegoo Nano/Uno R3 + DS1307 RTC + WS2811 RGB LEDs
 //
@@ -21,22 +19,24 @@
 //    Hour Forward  → D2 (momentary, other leg to GND)
 //    Hour Backward → D3 (momentary, other leg to GND)
 //
-//  LED Layout — 20 LED string (0-based indices):
+//  LED Layout — 20 LED string (0-based indices, MSB left):
 //
-//    Row 1 (H1, 2 bits):  18, 19          ← top of clock
-//    Row 2 (H2, 4 bits):  17, 16, 15, 14
-//    Row 3 (M1, 3 bits):  11, 12, 13
-//    Row 4 (M2, 4 bits):  10,  9,  8,  7
-//    Row 5 (S1, 3 bits):   4,  5,  6
-//    Row 6 (S2, 4 bits):   3,  2,  1,  0  ← bottom of clock
+//    Col:               2^3  2^2  2^1  2^0
+//    Row 1 (H1, 2 bits):  -,   -, 19,  18   <- top of clock
+//    Row 2 (H2, 4 bits): 14,  15, 16,  17
+//    Row 3 (M1, 3 bits):  -,  13, 12,  11
+//    Row 4 (M2, 4 bits):  7,   8,  9,  10
+//    Row 5 (S1, 3 bits):  -,   6,  5,   4
+//    Row 6 (S2, 4 bits):  0,   1,  2,   3   <- bottom of clock
 //
 //  Physical string positions (1-based) for reference:
-//    Row 1: 19, 20
-//    Row 2: 18, 17, 16, 15
-//    Row 3: 12, 13, 14
-//    Row 4: 11, 10,  9,  8
-//    Row 5:  5,  6,  7
-//    Row 6:  4,  3,  2,  1
+//    Col:               2^3  2^2  2^1  2^0
+//    Row 1 (H1, 2 bits):  -,   -, 20,  19
+//    Row 2 (H2, 4 bits): 15,  16, 17,  18
+//    Row 3 (M1, 3 bits):  -,  14, 13,  12
+//    Row 4 (M2, 4 bits):  8,   9, 10,  11
+//    Row 5 (S1, 3 bits):  -,   7,  6,   5
+//    Row 6 (S2, 4 bits):  1,   2,  3,   4
 //
 //  Each row displays its digit in binary, MSB on the left.
 //  ON  = bit is 1  (ROYGBIV colour based on current hour)
@@ -74,7 +74,7 @@ uint32_t lastPressBwd = 0;
 //    6:00 PM       -> Indigo     HUE ~ 192
 //    9:00 PM       -> Violet     HUE ~ 213
 //    Midnight (24) -> Red again  (wraps back)
-CRGB COLOR_OFF = CRGB(10, 10, 10);   // bit = 0  (dim white)
+CRGB COLOR_OFF = CRGB(5, 5, 5);   // bit = 0  (dim white)
 
 // Returns the ON colour for the current hour (0-23)
 CRGB timeColor(uint8_t hour) {
@@ -86,12 +86,12 @@ CRGB timeColor(uint8_t hour) {
 RTC_DS1307 rtc;
 
 // ── LED index map (0-based, MSB first per row) ───────────────
-const uint8_t ROW1[] = {18, 19};           // H1 — 2 bits
-const uint8_t ROW2[] = {17, 16, 15, 14};   // H2 — 4 bits
-const uint8_t ROW3[] = {11, 12, 13};       // M1 — 3 bits
-const uint8_t ROW4[] = {10,  9,  8,  7};   // M2 — 4 bits
-const uint8_t ROW5[] = { 4,  5,  6};       // S1 — 3 bits
-const uint8_t ROW6[] = { 3,  2,  1,  0};   // S2 — 4 bits
+const uint8_t ROW1[] = {19, 18};           // H1 — 2 bits  (MSB left)
+const uint8_t ROW2[] = {14, 15, 16, 17};   // H2 — 4 bits  (MSB left)
+const uint8_t ROW3[] = {13, 12, 11};       // M1 — 3 bits  (MSB left)
+const uint8_t ROW4[] = { 7,  8,  9, 10};   // M2 — 4 bits  (MSB left)
+const uint8_t ROW5[] = { 6,  5,  4};       // S1 — 3 bits  (MSB left)
+const uint8_t ROW6[] = { 0,  1,  2,  3};   // S2 — 4 bits  (MSB left)
 
 // ── Setup ────────────────────────────────────────────────────
 void setup() {
@@ -112,6 +112,14 @@ void setup() {
     FastLED.show();
     while (true) delay(10);
   }
+
+  // ── Time set ───────────────────────────────────────────────
+  // Uncomment the line below, upload once to sync time, then
+  // comment it out again and re-upload.
+  // Adjust the hour offset for your timezone:
+  //   EDT (summer): 4    EST (winter): 5
+  //
+  rtc.adjust(DateTime(F(__DATE__), F(__TIME__)) - TimeSpan(0, 4, 0, 0));
 
   Serial.println(F("RTC OK. D2=hour forward, D3=hour backward."));
 }
